@@ -289,11 +289,19 @@ fn get_input(s: &str) -> String {
 fn add_guess(gs: &mut Vec<Guess>, cs: &[String], sv: &mut StateVector) {
     // add single or multiple guesses to process
     // multiple guesses seperated by `;` eg. guess1, 2; guess2, 0; etc;..
+    // handle case when empty input or terminated string gracefully (ignore termination, repeat on empty)
     let raw_instr = get_input("New Guess (g1,n1; g2,n2;..):");
     let guesses: Vec<String> = raw_instr
         .split(';')
         .map(|x| x.trim().to_lowercase())
+        .filter(|x| !x.is_empty())
         .collect();
+
+    // check for empty choices vector, and return to main menu
+    if guesses.is_empty() {
+        eprintln!("no guesses entered!..");
+        return;
+    }
 
     // check against the word length in storage
     if !gs.is_empty() && bad_len(&words_from_guesses(&guesses), gs[0].word.len()) {
@@ -345,11 +353,19 @@ fn add_guess(gs: &mut Vec<Guess>, cs: &[String], sv: &mut StateVector) {
 fn add_choices(cs: &mut Vec<String>, gs: &[Guess], sv: &mut StateVector) {
     // add list of choices
     // seperate with commas: choice1, choice2, etc,..
+
     let raw_instr = get_input("Choices (c1, c2, c3,..):");
     let choices: Vec<String> = raw_instr
         .split(',')
         .map(|x| x.trim().to_lowercase())
+        .filter(|x| !x.is_empty())
         .collect();
+
+    // check for empty choices vector, and return to main menu
+    if choices.is_empty() {
+        eprintln!("no choices entered!..");
+        return;
+    }
 
     // check against the word length in storage
     if !cs.is_empty() && bad_len(&choices, cs[0].len()) {
@@ -521,7 +537,7 @@ fn dir_pass(gs: &[Guess], sv: &mut StateVector, rev: bool) {
                 }
                 // set unmatched to Not in left Guess (row)
                 for c in g1.to_chars() {
-                    if !in_matches(c.c, &matches) {
+                    if !in_matches(c, &matches) {
                         sv.update(Cps::new(c.c, c.pos, State::Not), true);
                     }
                 }
@@ -574,9 +590,10 @@ fn post_pass(gs: &[Guess], sv: &mut StateVector) {
     }
 }
 
-fn in_matches(c: char, ms: &Vec<(char, u8)>) -> bool {
+fn in_matches(c: Cps, ms: &Vec<(char, u8)>) -> bool {
+    // check both char and position
     for cps in ms {
-        if c == cps.0 {
+        if c.c == cps.0 && c.pos == cps.1 {
             return true;
         }
     }
